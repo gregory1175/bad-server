@@ -1,5 +1,5 @@
 # Проектная работа "WebLarek. Плохой сервер.", спринт 17
-
+https://github.com/gregory1175/bad-server?tab=readme-ov-file
 ## Подготовка к работе
 1. Склонировать репозиторий
 2. Запустить docker
