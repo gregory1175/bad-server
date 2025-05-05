@@ -32,7 +32,7 @@ export const getCustomers = async (
         } = req.query;
 
         const pageNumber = Math.max(1, Number(page) || 1);
-        const limitNumber = Math.max(1, Math.min(100, Number(limit) || 10));
+        const limitNumber = Math.max(1, Math.min(10, Number(limit) || 10));
 
         const filters: FilterQuery<Partial<IUser>> = {};
 
