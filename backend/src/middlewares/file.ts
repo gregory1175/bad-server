@@ -1,9 +1,10 @@
-import { Request, Express } from 'express'
-import multer, { FileFilterCallback } from 'multer'
-import { resolve } from 'path'
+import { Request, Express } from 'express';
+import multer, { FileFilterCallback } from 'multer';
+import path, { resolve } from 'path';
+import crypto from 'crypto';
 
-type DestinationCallback = (error: Error | null, destination: string) => void
-type FileNameCallback = (error: Error | null, filename: string) => void
+type DestinationCallback = (error: Error | null, destination: string) => void;
+type FileNameCallback = (error: Error | null, filename: string) => void;
 
 const storage = multer.diskStorage({
     destination: (
@@ -13,10 +14,10 @@ const storage = multer.diskStorage({
     ) => {
         const uploadPath = process.env.UPLOAD_PATH_TEMP
             ? `../public/${process.env.UPLOAD_PATH_TEMP}`
-            : '../public'
+            : '../public';
 
-        const destination = resolve(__dirname, uploadPath)
-        cb(null, destination)
+        const destination = resolve(__dirname, uploadPath);
+        cb(null, destination);
     },
 
     filename: (
@@ -24,10 +25,11 @@ const storage = multer.diskStorage({
         file: Express.Multer.File,
         cb: FileNameCallback
     ) => {
-        const safeFileName = file.originalname.replace(/[^a-zA-Z0-9.-]/g, '_')
-        cb(null, safeFileName)
+        const uniqueSuffix = crypto.randomBytes(8).toString('hex');
+        const ext = path.extname(file.originalname);
+        cb(null, `${uniqueSuffix}${ext}`);
     },
-})
+});
 
 const allowedTypes = [
     'image/png',
@@ -35,7 +37,7 @@ const allowedTypes = [
     'image/jpeg',
     'image/gif',
     'image/svg+xml',
-]
+];
 
 const fileFilter = (
     _req: Request,
@@ -43,10 +45,10 @@ const fileFilter = (
     cb: FileFilterCallback
 ) => {
     if (!allowedTypes.includes(file.mimetype)) {
-        return cb(null, false)
+        return cb(null, false);
     }
 
-    return cb(null, true)
-}
+    return cb(null, true);
+};
 
-export default multer({ storage, fileFilter })
+export default multer({ storage, fileFilter });
