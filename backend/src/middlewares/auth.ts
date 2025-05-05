@@ -5,7 +5,7 @@ import { ACCESS_TOKEN } from '../config'
 import ForbiddenError from '../errors/forbidden-error'
 import NotFoundError from '../errors/not-found-error'
 import UnauthorizedError from '../errors/unauthorized-error'
-import UserModel, { Role } from '../models/user'
+import UserModel, { IUser, Role } from '../models/user'
 
 // есть файл middlewares/auth.js, в нём мидлвэр для проверки JWT;
 
@@ -43,13 +43,13 @@ const auth = async (req: Request, res: Response, next: NextFunction) => {
 
 export function roleGuardMiddleware(...roles: Role[]) {
     return (_req: Request, res: Response, next: NextFunction) => {
-        if (!res.locals.user) {
+        const user = res.locals.user as IUser // Уточняем тип пользователя
+
+        if (!user) {
             return next(new UnauthorizedError('Необходима авторизация'))
         }
 
-        const hasAccess = roles.some((role) =>
-            res.locals.user.roles.includes(role)
-        )
+        const hasAccess = roles.some(role => user.roles.includes(role))
 
         if (!hasAccess) {
             return next(new ForbiddenError('Доступ запрещен'))

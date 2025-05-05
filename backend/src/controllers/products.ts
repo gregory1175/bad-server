@@ -7,31 +7,43 @@ import ConflictError from '../errors/conflict-error'
 import NotFoundError from '../errors/not-found-error'
 import Product from '../models/product'
 import movingFile from '../utils/movingFile'
+import { roleGuardMiddleware } from '../middlewares/error-handler'
 
 // GET /product
 const getProducts = async (req: Request, res: Response, next: NextFunction) => {
     try {
-        const { page = 1, limit = 5 } = req.query
-        const options = {
-            skip: (Number(page) - 1) * Number(limit),
-            limit: Number(limit),
+        const { page = 1, limit = 5 } = req.query;
+
+        let parsedLimit = parseInt(limit as string, 10);
+        if (Number.isNaN(parsedLimit) || parsedLimit <= 0) {
+            parsedLimit = 5;
         }
-        const products = await Product.find({}, null, options)
-        const totalProducts = await Product.countDocuments({})
-        const totalPages = Math.ceil(totalProducts / Number(limit))
+        const normalizedLimit = Math.min(parsedLimit, 5);
+
+        const parsedPage = Math.max(parseInt(page as string, 10) || 1, 1);
+
+        const options = {
+            skip: (parsedPage - 1) * normalizedLimit,
+            limit: normalizedLimit,
+        };
+        const products = await Product.find({}, null, options);
+        const totalProducts = await Product.countDocuments({});
+        const totalPages = Math.ceil(totalProducts / normalizedLimit);
         return res.send({
             items: products,
             pagination: {
                 totalProducts,
                 totalPages,
-                currentPage: Number(page),
-                pageSize: Number(limit),
+                currentPage: parsedPage,
+                pageSize: 10,
             },
-        })
+        });
     } catch (err) {
-        return next(err)
+        return next(err);
     }
-}
+};
+
+
 
 // POST /product
 const createProduct = async (
@@ -41,7 +53,6 @@ const createProduct = async (
 ) => {
     try {
         const { description, category, price, title, image } = req.body
-
         // Переносим картинку из временной папки
         if (image) {
             movingFile(
@@ -79,6 +90,7 @@ const updateProduct = async (
     res: Response,
     next: NextFunction
 ) => {
+    roleGuardMiddleware();
     try {
         const { productId } = req.params
         const { image } = req.body
@@ -127,6 +139,7 @@ const deleteProduct = async (
     res: Response,
     next: NextFunction
 ) => {
+    roleGuardMiddleware();
     try {
         const { productId } = req.params
         const product = await Product.findByIdAndDelete(productId).orFail(

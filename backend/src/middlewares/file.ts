@@ -1,54 +1,58 @@
-import { Request, Express } from 'express'
-import multer, { FileFilterCallback } from 'multer'
-import { join } from 'path'
+import { randomUUID } from 'crypto';
+import { Request, Express } from 'express';
+import multer, { FileFilterCallback } from 'multer';
+import { extname, join } from 'path';
+import fs from 'fs';
 
-type DestinationCallback = (error: Error | null, destination: string) => void
-type FileNameCallback = (error: Error | null, filename: string) => void
+const uploadDir = process.env.UPLOAD_PATH_TEMP
+    ? join(__dirname, `../public/${process.env.UPLOAD_PATH_TEMP}`)
+    : join(__dirname, '../public');
+
+if (!fs.existsSync(uploadDir)) {
+    fs.mkdirSync(uploadDir, { recursive: true });
+}
 
 const storage = multer.diskStorage({
     destination: (
         _req: Request,
         _file: Express.Multer.File,
-        cb: DestinationCallback
+        cb: (error: Error | null, destination: string) => void
     ) => {
-        cb(
-            null,
-            join(
-                __dirname,
-                process.env.UPLOAD_PATH_TEMP
-                    ? `../public/${process.env.UPLOAD_PATH_TEMP}`
-                    : '../public'
-            )
-        )
+        cb(null, uploadDir);
     },
 
     filename: (
         _req: Request,
         file: Express.Multer.File,
-        cb: FileNameCallback
+        cb: (error: Error | null, filename: string) => void
     ) => {
-        cb(null, file.originalname)
+        const uniqueName = `${randomUUID()}${extname(file.originalname)}`;
+        cb(null, uniqueName);
     },
-})
+});
 
-const types = [
+const allowedTypes = [
     'image/png',
     'image/jpg',
     'image/jpeg',
     'image/gif',
     'image/svg+xml',
-]
+];
 
 const fileFilter = (
     _req: Request,
     file: Express.Multer.File,
     cb: FileFilterCallback
-) => {
-    if (!types.includes(file.mimetype)) {
-        return cb(null, false)
+  ) => {
+    if (!allowedTypes.includes(file.mimetype)) {
+      return cb(null, false);  // Больше информативности в ошибке
     }
 
-    return cb(null, true)
-}
+    if (file.buffer.length === 0) {
+      return cb(null, false);
+    }
+    return cb(null, true);
+  };
+  
 
-export default multer({ storage, fileFilter })
+export default multer({ storage, fileFilter });
