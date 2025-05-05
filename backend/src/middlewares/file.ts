@@ -1,6 +1,6 @@
 import { Request, Express } from 'express'
 import multer, { FileFilterCallback } from 'multer'
-import { join } from 'path'
+import { resolve } from 'path'
 
 type DestinationCallback = (error: Error | null, destination: string) => void
 type FileNameCallback = (error: Error | null, filename: string) => void
@@ -11,15 +11,12 @@ const storage = multer.diskStorage({
         _file: Express.Multer.File,
         cb: DestinationCallback
     ) => {
-        cb(
-            null,
-            join(
-                __dirname,
-                process.env.UPLOAD_PATH_TEMP
-                    ? `../public/${process.env.UPLOAD_PATH_TEMP}`
-                    : '../public'
-            )
-        )
+        const uploadPath = process.env.UPLOAD_PATH_TEMP
+            ? `../public/${process.env.UPLOAD_PATH_TEMP}`
+            : '../public'
+
+        const destination = resolve(__dirname, uploadPath)
+        cb(null, destination)
     },
 
     filename: (
@@ -27,11 +24,12 @@ const storage = multer.diskStorage({
         file: Express.Multer.File,
         cb: FileNameCallback
     ) => {
-        cb(null, file.originalname)
+        const safeFileName = file.originalname.replace(/[^a-zA-Z0-9.-]/g, '_')
+        cb(null, safeFileName)
     },
 })
 
-const types = [
+const allowedTypes = [
     'image/png',
     'image/jpg',
     'image/jpeg',
@@ -44,7 +42,7 @@ const fileFilter = (
     file: Express.Multer.File,
     cb: FileFilterCallback
 ) => {
-    if (!types.includes(file.mimetype)) {
+    if (!allowedTypes.includes(file.mimetype)) {
         return cb(null, false)
     }
 

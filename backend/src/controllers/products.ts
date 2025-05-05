@@ -12,9 +12,17 @@ import movingFile from '../utils/movingFile'
 const getProducts = async (req: Request, res: Response, next: NextFunction) => {
     try {
         const { page = 1, limit = 5 } = req.query;
-        const normalizedLimit = Math.min(Number(limit), 10);
+
+        let parsedLimit = parseInt(limit as string, 10);
+        if (Number.isNaN(parsedLimit) || parsedLimit <= 0) {
+            parsedLimit = 5;
+        }
+        const normalizedLimit = Math.min(parsedLimit, 10);
+
+        const parsedPage = Math.max(parseInt(page as string, 10) || 1, 1);
+
         const options = {
-            skip: (Number(page) - 1) * normalizedLimit,
+            skip: (parsedPage - 1) * normalizedLimit,
             limit: normalizedLimit,
         };
         const products = await Product.find({}, null, options);
@@ -25,14 +33,15 @@ const getProducts = async (req: Request, res: Response, next: NextFunction) => {
             pagination: {
                 totalProducts,
                 totalPages,
-                currentPage: Number(page),
+                currentPage: parsedPage,
                 pageSize: normalizedLimit,
             },
         });
     } catch (err) {
-        return next(err)
+        return next(err);
     }
-}
+};
+
 
 // POST /product
 const createProduct = async (
