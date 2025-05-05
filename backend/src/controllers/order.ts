@@ -9,15 +9,11 @@ import { escapeHtml } from '../utils/excapeHtml'
 // eslint-disable-next-line max-len
 // GET /orders?page=2&limit=5&sort=totalAmount&order=desc&orderDateFrom=2024-07-01&orderDateTo=2024-08-01&status=delivering&totalAmountFrom=100&totalAmountTo=1000&search=%2B1
 
-export const getOrders = async (
-    req: Request,
-    res: Response,
-    next: NextFunction
-) => {
+export const getOrders = async (req: Request, res: Response, next: NextFunction) => {
     try {
         const {
-            page = 1,
-            limit = 10,
+            page = '1',
+            limit = '10',
             sortField = 'createdAt',
             sortOrder = 'desc',
             status,
@@ -28,7 +24,23 @@ export const getOrders = async (
             search,
         } = req.query;
 
-        const parsedLimit = Math.min(Number(limit), 10);
+        // Ensure numeric values are safe
+        const parsedPage = parseInt(page as string, 10);
+        const parsedLimit = Math.min(parseInt(limit as string, 10), 10);
+
+        if (Number.isNaN(parsedPage) || Number.isNaN(parsedLimit)) {
+            return res.status(400).json({ message: 'Invalid page or limit' });
+        }
+
+        // Only allow specific sort fields
+        const allowedSortFields = ['createdAt', 'totalAmount', 'orderNumber', 'status'];
+        if (!allowedSortFields.includes(sortField as string)) {
+            return res.status(400).json({ message: 'Invalid sortField' });
+        }
+
+        if (sortOrder !== 'asc' && sortOrder !== 'desc') {
+            return res.status(400).json({ message: 'Invalid sortOrder' });
+        }
 
         const filters: FilterQuery<Partial<IOrder>> = {};
 
@@ -36,31 +48,31 @@ export const getOrders = async (
             filters.status = status;
         }
 
-        if (totalAmountFrom) {
+        if (typeof totalAmountFrom === 'string' && !Number.isNaN(Number(totalAmountFrom))) {
             filters.totalAmount = {
                 ...filters.totalAmount,
                 $gte: Number(totalAmountFrom),
             };
         }
 
-        if (totalAmountTo) {
+        if (typeof totalAmountTo === 'string' && !Number.isNaN(Number(totalAmountTo))) {
             filters.totalAmount = {
                 ...filters.totalAmount,
                 $lte: Number(totalAmountTo),
             };
         }
 
-        if (orderDateFrom) {
+        if (typeof orderDateFrom === 'string' && !Number.isNaN(Date.parse(orderDateFrom))) {
             filters.createdAt = {
                 ...filters.createdAt,
-                $gte: new Date(orderDateFrom as string),
+                $gte: new Date(orderDateFrom),
             };
         }
 
-        if (orderDateTo) {
+        if (typeof orderDateTo === 'string' && !Number.isNaN(Date.parse(orderDateTo))) {
             filters.createdAt = {
                 ...filters.createdAt,
-                $lte: new Date(orderDateTo as string),
+                $lte: new Date(orderDateTo),
             };
         }
 
@@ -86,8 +98,8 @@ export const getOrders = async (
             { $unwind: '$products' },
         ];
 
-        if (search) {
-            const searchRegex = new RegExp(search as string, 'i');
+        if (typeof search === 'string') {
+            const searchRegex = new RegExp(search, 'i');
             const searchNumber = Number(search);
 
             const searchConditions: any[] = [{ 'products.title': searchRegex }];
@@ -103,15 +115,12 @@ export const getOrders = async (
             });
         }
 
-        const sort: { [key: string]: any } = {};
-
-        if (sortField && sortOrder) {
-            sort[sortField as string] = sortOrder === 'desc' ? -1 : 1;
-        }
+        const sort: { [key: string]: 1 | -1 } = {};
+        sort[sortField as string] = sortOrder === 'desc' ? -1 : 1;
 
         aggregatePipeline.push(
             { $sort: sort },
-            { $skip: (Number(page) - 1) * parsedLimit },
+            { $skip: (parsedPage - 1) * parsedLimit },
             { $limit: parsedLimit },
             {
                 $group: {
@@ -135,7 +144,7 @@ export const getOrders = async (
             pagination: {
                 totalOrders,
                 totalPages,
-                currentPage: Number(page),
+                currentPage: parsedPage,
                 pageSize: parsedLimit,
             },
         });
