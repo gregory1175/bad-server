@@ -1,4 +1,5 @@
 import { Router } from 'express';
+// eslint-disable-next-line import/no-extraneous-dependencies
 import rateLimit from 'express-rate-limit';
 import {
     deleteCustomer,
@@ -6,7 +7,8 @@ import {
     getCustomers,
     updateCustomer,
 } from '../controllers/customers';
-import auth from '../middlewares/error-handler';
+import auth, { roleGuardMiddleware } from '../middlewares/error-handler';
+import { Role } from '../models/user';
 
 
 const customerRouter = Router();
@@ -19,7 +21,7 @@ const limiter = rateLimit({
 });
 
 // Для списка клиентов (где обычно много запросов)
-customerRouter.get('/', auth, limiter, getCustomers);
+customerRouter.get('/', auth, roleGuardMiddleware(Role.Admin), limiter, getCustomers);
 
 // Для операций с конкретным клиентом
 customerRouter.get('/:id', auth, getCustomerById);
