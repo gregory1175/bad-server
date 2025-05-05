@@ -15,6 +15,7 @@ export default function AdminFilterOrders() {
     const { updateFilter, clearFilters } = useActionCreators(ordersActions)
     const filterOrderOption = useSelector(ordersSelector.selectFilterOption)
 
+    // eslint-disable-next-line @typescript-eslint/no-explicit-any
     const handleFilter = (filters: Record<string, any>) => {
         dispatch(updateFilter({ ...filters, status: filters.status.value }))
         const queryParams: { [key: string]: string } = {}

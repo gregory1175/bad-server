@@ -6,9 +6,12 @@ import Order, { IOrder } from '../models/order'
 import Product, { IProduct } from '../models/product'
 import User from '../models/user'
 
+function escapeRegExp(string: string): string {
+    return string.replace(/[.*+?^${}()|[\]\\]/g, '\\$&')
+}
+
 // eslint-disable-next-line max-len
 // GET /orders?page=2&limit=5&sort=totalAmount&order=desc&orderDateFrom=2024-07-01&orderDateTo=2024-08-01&status=delivering&totalAmountFrom=100&totalAmountTo=1000&search=%2B1
-
 export const getOrders = async (
     req: Request,
     res: Response,
@@ -184,25 +187,22 @@ export const getOrdersCurrentUser = async (
         let orders = user.orders as unknown as IOrder[]
 
         if (search) {
-            // если не экранировать то получаем Invalid regular expression: /+1/i: Nothing to repeat
-            const searchRegex = new RegExp(search as string, 'i')
+            const escapedSearch = escapeRegExp(search as string)
+            const searchRegex = new RegExp(escapedSearch, 'i')
             const searchNumber = Number(search)
             const products = await Product.find({ title: searchRegex })
             const productIds = products.map((product) => product._id)
-
+        
             orders = orders.filter((order) => {
-                // eslint-disable-next-line max-len
                 const matchesProductTitle = order.products.some((product) =>
                     productIds.some((id) => id.equals(product._id))
                 )
-                // eslint-disable-next-line max-len
                 const matchesOrderNumber =
-                    !Number.isNaN(searchNumber) &&
-                    order.orderNumber === searchNumber
-
+                    !Number.isNaN(searchNumber) && order.orderNumber === searchNumber
+        
                 return matchesOrderNumber || matchesProductTitle
             })
-        }
+        }    
 
         const totalOrders = orders.length
         const totalPages = Math.ceil(totalOrders / Number(limit))
@@ -370,7 +370,9 @@ export const deleteOrder = async (
     next: NextFunction
 ) => {
     try {
-        const deletedOrder = await Order.findByIdAndDelete(req.params.id)
+        const deletedOrder = await Order.findOneAndDelete({
+            orderNumber: req.params.orderNumber,
+        })
             .orFail(
                 () =>
                     new NotFoundError(
@@ -378,7 +380,10 @@ export const deleteOrder = async (
                     )
             )
             .populate(['customer', 'products'])
-        return res.status(200).json(deletedOrder)
+        return res.status(200).json({
+            message: 'Заказ успешно удалён',
+            order: deletedOrder,
+        })
     } catch (error) {
         if (error instanceof MongooseError.CastError) {
             return next(new BadRequestError('Передан не валидный ID заказа'))
