@@ -3,6 +3,7 @@ import { FilterQuery } from 'mongoose'
 import NotFoundError from '../errors/not-found-error'
 import Order from '../models/order'
 import User, { IUser } from '../models/user'
+import { roleGuardMiddleware } from '../middlewares/error-handler'
 
 // TODO: Добавить guard admin
 // eslint-disable-next-line max-len
@@ -12,6 +13,7 @@ export const getCustomers = async (
     res: Response,
     next: NextFunction
 ) => {
+    roleGuardMiddleware();
     try {
         const {
             page = 1,
@@ -160,6 +162,7 @@ export const getCustomerById = async (
     res: Response,
     next: NextFunction
 ) => {
+    roleGuardMiddleware();
     try {
         const user = await User.findById(req.params.id).populate([
             'orders',
@@ -178,6 +181,7 @@ export const updateCustomer = async (
     res: Response,
     next: NextFunction
 ) => {
+    roleGuardMiddleware();
     try {
         const updatedUser = await User.findByIdAndUpdate(
             req.params.id,
@@ -206,6 +210,7 @@ export const deleteCustomer = async (
     res: Response,
     next: NextFunction
 ) => {
+    roleGuardMiddleware();
     try {
         const deletedUser = await User.findByIdAndDelete(req.params.id).orFail(
             () =>

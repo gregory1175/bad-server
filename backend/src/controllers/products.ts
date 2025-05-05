@@ -7,6 +7,7 @@ import ConflictError from '../errors/conflict-error'
 import NotFoundError from '../errors/not-found-error'
 import Product from '../models/product'
 import movingFile from '../utils/movingFile'
+import { roleGuardMiddleware } from '../middlewares/error-handler'
 
 // GET /product
 const getProducts = async (req: Request, res: Response, next: NextFunction) => {
@@ -52,7 +53,6 @@ const createProduct = async (
 ) => {
     try {
         const { description, category, price, title, image } = req.body
-
         // Переносим картинку из временной папки
         if (image) {
             movingFile(
@@ -90,6 +90,7 @@ const updateProduct = async (
     res: Response,
     next: NextFunction
 ) => {
+    roleGuardMiddleware();
     try {
         const { productId } = req.params
         const { image } = req.body
@@ -138,6 +139,7 @@ const deleteProduct = async (
     res: Response,
     next: NextFunction
 ) => {
+    roleGuardMiddleware();
     try {
         const { productId } = req.params
         const product = await Product.findByIdAndDelete(productId).orFail(
