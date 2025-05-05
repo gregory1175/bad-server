@@ -31,7 +31,12 @@ export const getOrders = async (
             search,
         } = req.query
 
-        const filters: FilterQuery<Partial<IOrder>> = {}
+        const parsedPage = Math.max(1, parseInt(page as string, 10)); // Ensuring positive integer
+        const parsedLimit = Math.max(1, parseInt(limit as string, 10)); // Ensuring positive integer
+
+        const filters: FilterQuery<Partial<IOrder>> = {};
+
+  
 
         if (status) {
             if (typeof status === 'object') {
@@ -69,7 +74,6 @@ export const getOrders = async (
                 $lte: new Date(orderDateTo as string),
             }
         }
-
         const aggregatePipeline: any[] = [
             { $match: filters },
             {
@@ -88,9 +92,15 @@ export const getOrders = async (
                     as: 'customer',
                 },
             },
+            { $skip: (parsedPage - 1) * parsedLimit },
+            { $limit: parsedLimit },
             { $unwind: '$customer' },
             { $unwind: '$products' },
-        ]
+        ];
+        
+        const orders = await Order.aggregate(aggregatePipeline);
+        const totalOrders = await Order.countDocuments(filters);
+        const totalPages = Math.ceil(totalOrders / parsedLimit);
 
         if (search) {
             const searchRegex = new RegExp(search as string, 'i')
@@ -134,23 +144,19 @@ export const getOrders = async (
             }
         )
 
-        const orders = await Order.aggregate(aggregatePipeline)
-        const totalOrders = await Order.countDocuments(filters)
-        const totalPages = Math.ceil(totalOrders / Number(limit))
-
         res.status(200).json({
             orders,
             pagination: {
                 totalOrders,
                 totalPages,
-                currentPage: Number(page),
-                pageSize: Number(limit),
+                currentPage: parsedPage,
+                pageSize: parsedLimit,
             },
-        })
+        });
     } catch (error) {
-        next(error)
+        next(error);
     }
-}
+};
 
 export const getOrdersCurrentUser = async (
     req: Request,
@@ -158,33 +164,37 @@ export const getOrdersCurrentUser = async (
     next: NextFunction
 ) => {
     try {
-        const userId = res.locals.user._id
-        const { search, page = 1, limit = 5 } = req.query
+        const userId = res.locals.user._id;
+        const { search, page = 1, limit = 5 } = req.query;
+
+        const parsedPage = Math.max(1, parseInt(page as string, 10));
+        const parsedLimit = Math.max(1, parseInt(limit as string, 10));
+
         const options = {
-            skip: (Number(page) - 1) * Number(limit),
-            limit: Number(limit),
-        }
+            skip: (parsedPage - 1) * parsedLimit,
+            limit: parsedLimit,
+        };
 
         const user = await User.findById(userId)
-            .populate({
-                path: 'orders',
-                populate: [
-                    {
-                        path: 'products',
-                    },
-                    {
-                        path: 'customer',
-                    },
-                ],
-            })
-            .orFail(
-                () =>
-                    new NotFoundError(
-                        'Пользователь по заданному id отсутствует в базе'
-                    )
-            )
+        .populate({
+            path: 'orders',
+            populate: [
+                {
+                    path: 'products',
+                },
+                {
+                    path: 'customer',
+                },
+            ],
+        })
+        .orFail(
+            () =>
+                new NotFoundError(
+                    'Пользователь по заданному id отсутствует в базе'
+                )
+        );
 
-        let orders = user.orders as unknown as IOrder[]
+        let orders = user.orders as unknown as IOrder[];
 
         if (search) {
             const escapedSearch = escapeRegExp(search as string)
@@ -204,24 +214,24 @@ export const getOrdersCurrentUser = async (
             })
         }    
 
-        const totalOrders = orders.length
-        const totalPages = Math.ceil(totalOrders / Number(limit))
+        const totalOrders = orders.length;
+        const totalPages = Math.ceil(totalOrders / parsedLimit);
 
-        orders = orders.slice(options.skip, options.skip + options.limit)
+        orders = orders.slice(options.skip, options.skip + options.limit);
 
         return res.send({
             orders,
             pagination: {
                 totalOrders,
                 totalPages,
-                currentPage: Number(page),
-                pageSize: Number(limit),
+                currentPage: parsedPage,
+                pageSize: parsedLimit,
             },
-        })
+        });
     } catch (error) {
-        next(error)
+        next(error);
     }
-}
+};
 
 // Get order by ID
 export const getOrderByNumber = async (
