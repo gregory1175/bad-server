@@ -12,7 +12,7 @@ import routes from './routes'
 
 const { PORT = 3000 } = process.env
 const app = express()
-const originAllow = process.env.ORIGIN_ALLOW || 5173;
+const originAllow = process.env.ORIGIN_ALLOW || "5173";
 
 app.use(cookieParser())
 
