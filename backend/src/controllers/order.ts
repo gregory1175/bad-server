@@ -46,6 +46,8 @@ export const getOrders = async (req: Request, res: Response, next: NextFunction)
 
         if (typeof status === 'string') {
             filters.status = status;
+        } else if (status !== undefined) {
+            return res.status(400).json({ message: 'Invalid status value' });
         }
 
         if (typeof totalAmountFrom === 'string' && !Number.isNaN(Number(totalAmountFrom))) {
