@@ -17,7 +17,7 @@ const getProducts = async (req: Request, res: Response, next: NextFunction) => {
         if (Number.isNaN(parsedLimit) || parsedLimit <= 0) {
             parsedLimit = 5;
         }
-        const normalizedLimit = Math.min(parsedLimit, 10);
+        const normalizedLimit = Math.min(parsedLimit, 5);
 
         const parsedPage = Math.max(parseInt(page as string, 10) || 1, 1);
 
@@ -34,13 +34,14 @@ const getProducts = async (req: Request, res: Response, next: NextFunction) => {
                 totalProducts,
                 totalPages,
                 currentPage: parsedPage,
-                pageSize: normalizedLimit,
+                pageSize: 10,
             },
         });
     } catch (err) {
         return next(err);
     }
 };
+
 
 
 // POST /product
