@@ -47,12 +47,10 @@ const fileFilter = (
     if (!allowedTypes.includes(file.mimetype)) {
       return cb(null, false);  // Больше информативности в ошибке
     }
-  
-    // Дополнительная проверка, чтобы убедиться, что файл действительно изображение
+
     if (file.buffer.length === 0) {
       return cb(null, false);
     }
-  
     return cb(null, true);
   };
   

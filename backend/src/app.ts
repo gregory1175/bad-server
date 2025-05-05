@@ -12,12 +12,19 @@ import routes from './routes'
 
 const { PORT = 3000 } = process.env
 const app = express()
-const originAllow = process.env.ORIGIN_ALLOW || "5173";
 
 app.use(cookieParser())
 
-app.use(cors())
-app.use(cors({ origin: originAllow, credentials: true }));
+app.use((_, res, next) => {
+    res.header('Access-Control-Allow-Origin', process.env.ORIGIN_ALLOW || "http://localhost:5173");
+    res.header('Access-Control-Allow-Credentials', 'true');
+    res.header('Access-Control-Allow-Methods', 'GET, POST, PUT, DELETE, OPTIONS');
+    res.header('Access-Control-Allow-Headers', 'Authorization, Content-Type');
+    console.log('Response Headers:', res.getHeaders());  // Логирование заголовков
+    next();
+});
+
+  
 app.use(express.static(path.join(__dirname, 'public')));
 
 // app.use(serveStatic(path.join(__dirname, 'public')))
