@@ -26,47 +26,42 @@ export const getOrders = async (
             orderDateFrom,
             orderDateTo,
             search,
-        } = req.query
+        } = req.query;
 
         const parsedLimit = Math.min(Number(limit), 10);
 
-        const filters: FilterQuery<Partial<IOrder>> = {}
+        const filters: FilterQuery<Partial<IOrder>> = {};
 
-        if (status) {
-            if (typeof status === 'object') {
-                Object.assign(filters, status)
-            }
-            if (typeof status === 'string') {
-                filters.status = status
-            }
+        if (typeof status === 'string') {
+            filters.status = status;
         }
 
         if (totalAmountFrom) {
             filters.totalAmount = {
                 ...filters.totalAmount,
                 $gte: Number(totalAmountFrom),
-            }
+            };
         }
 
         if (totalAmountTo) {
             filters.totalAmount = {
                 ...filters.totalAmount,
                 $lte: Number(totalAmountTo),
-            }
+            };
         }
 
         if (orderDateFrom) {
             filters.createdAt = {
                 ...filters.createdAt,
                 $gte: new Date(orderDateFrom as string),
-            }
+            };
         }
 
         if (orderDateTo) {
             filters.createdAt = {
                 ...filters.createdAt,
                 $lte: new Date(orderDateTo as string),
-            }
+            };
         }
 
         const aggregatePipeline: any[] = [
@@ -89,31 +84,29 @@ export const getOrders = async (
             },
             { $unwind: '$customer' },
             { $unwind: '$products' },
-        ]
+        ];
 
         if (search) {
-            const searchRegex = new RegExp(search as string, 'i')
-            const searchNumber = Number(search)
+            const searchRegex = new RegExp(search as string, 'i');
+            const searchNumber = Number(search);
 
-            const searchConditions: any[] = [{ 'products.title': searchRegex }]
+            const searchConditions: any[] = [{ 'products.title': searchRegex }];
 
             if (!Number.isNaN(searchNumber)) {
-                searchConditions.push({ orderNumber: searchNumber })
+                searchConditions.push({ orderNumber: searchNumber });
             }
 
             aggregatePipeline.push({
                 $match: {
                     $or: searchConditions,
                 },
-            })
-
-            filters.$or = searchConditions
+            });
         }
 
-        const sort: { [key: string]: any } = {}
+        const sort: { [key: string]: any } = {};
 
         if (sortField && sortOrder) {
-            sort[sortField as string] = sortOrder === 'desc' ? -1 : 1
+            sort[sortField as string] = sortOrder === 'desc' ? -1 : 1;
         }
 
         aggregatePipeline.push(
@@ -131,11 +124,11 @@ export const getOrders = async (
                     createdAt: { $first: '$createdAt' },
                 },
             }
-        )
+        );
 
-        const orders = await Order.aggregate(aggregatePipeline)
-        const totalOrders = await Order.countDocuments(filters)
-        const totalPages = Math.ceil(totalOrders / parsedLimit)
+        const orders = await Order.aggregate(aggregatePipeline);
+        const totalOrders = await Order.countDocuments(filters);
+        const totalPages = Math.ceil(totalOrders / parsedLimit);
 
         res.status(200).json({
             orders,
@@ -145,11 +138,11 @@ export const getOrders = async (
                 currentPage: Number(page),
                 pageSize: parsedLimit,
             },
-        })
+        });
     } catch (error) {
-        next(error)
+        next(error);
     }
-}
+};
 
 export const getOrdersCurrentUser = async (
     req: Request,
