@@ -3,7 +3,7 @@ import { constants } from 'http2'
 import BadRequestError from '../errors/bad-request-error'
 
 const MIN_FILE_SIZE = 2 * 1024 
-const MAX_FILE_SIZE = 10 * 1024 * 1024
+// const MAX_FILE_SIZE = 10 * 1024 * 1024
 
 export const uploadFile = async (
     req: Request,
@@ -11,16 +11,16 @@ export const uploadFile = async (
     next: NextFunction
 ) => {
     if (!req.file) {
-        return next(new BadRequestError('Файл не загружен'))
-    }
+         return next(new BadRequestError('Файл не загружен'))
+     }
 
     if (req.file.size < MIN_FILE_SIZE) {
         return next(new BadRequestError('Размер файла слишком маленький'))
     }
 
-    if (req.file.size > MAX_FILE_SIZE) {
-        return next(new BadRequestError('Размер файла слишком большой'))
-    }
+    // if (req.file.size > MAX_FILE_SIZE) {
+    //     return next(new BadRequestError('Размер файла слишком большой'))
+    // }
 
     if (!req.file.mimetype.startsWith('image/')) {
         return next(new BadRequestError('Загружаемый файл должен быть изображением'))
