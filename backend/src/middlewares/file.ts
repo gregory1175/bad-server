@@ -43,16 +43,11 @@ const fileFilter = (
     _req: Request,
     file: Express.Multer.File,
     cb: FileFilterCallback
-  ) => {
+) => {
     if (!allowedTypes.includes(file.mimetype)) {
-      return cb(null, false);  // Больше информативности в ошибке
-    }
-
-    if (file.buffer.length === 0) {
-      return cb(null, false);
+        return cb(null, false);
     }
     return cb(null, true);
-  };
-  
+};
 
 export default multer({ storage, fileFilter });
